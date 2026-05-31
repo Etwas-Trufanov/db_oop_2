@@ -12,3 +12,4 @@ DatabaseMain::~DatabaseMain()
 {
     delete ui;
 }
+

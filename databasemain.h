@@ -15,9 +15,30 @@ class DatabaseMain : public QMainWindow
 
 public:
     explicit DatabaseMain(QWidget *parent = nullptr);
-    ~DatabaseMain() override;
 
+    void updateTable();
+
+    ~DatabaseMain() override;
 private:
     Ui::DatabaseMain *ui;
+
+    QJsonDocument db();
+
+    const QString stdSavePath = R"(~/.local/share/OOP2-BD/db.json)";
+
+    // Загрузка db из файла
+    void tryLoadDB();
+    void tryLoadDB(const QString &path);
+
+    //Сохранение db
+    void trySaveDB();
+    void trySaveDB(const QString &path);
+
+    // Добавление ученика
+    bool addStudent(const QString &name, const unsigned level);
+
+    // Добавление пропуска ученики
+    bool addSkipping(const QString &name, const QDateTime date, unsigned subject);
+
 };
 #endif // DATABASEMAIN_H
