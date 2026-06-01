@@ -6,10 +6,16 @@ DatabaseMain::DatabaseMain(QWidget *parent)
     , ui(new Ui::DatabaseMain)
 {
     ui->setupUi(this);
+    ui->tableView.
 }
+
+
 
 DatabaseMain::~DatabaseMain()
 {
     delete ui;
 }
 
+void DatabaseMain::update(const QJsonObject &object) {
+    ui->tableView.
+}
