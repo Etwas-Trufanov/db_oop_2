@@ -1,66 +1,91 @@
 #ifndef DATABASE_H
 #define DATABASE_H
 
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QJsonDocument>
+#include <QString>
+#include <qdatetime.h>
+#include "json.hpp"
 
 class TDataBase {
 private:
-    QJsonArray data;
-    std::vector<std::function<void(const QJsonArray&)>> observers;
+    nlohmann::json data;
+    std::vector<std::function<void(const nlohmann::json&)>> observers;
 public:
     // Простой инициализатор
-    TDataBase() : data(QJsonArray()) {};
+    TDataBase() {
+        data = nlohmann::json();
+        data["spreadsheet"] = nlohmann::json::array();
+    };
 
     // С загрузкой из файла
-    TDataBase(const QString &path);
+    TDataBase(const QString &path) {};
 
     // Сохранение файла
     void saveDateBase(const QString &path);
 
     // Добавления наблюдателя
-    void addObserver(std::function<void(const QJsonArray&)> observer) {
+    void addObserver(std::function<void(const nlohmann::json&)> observer) {
         observers.push_back(observer);
     };
 
-    // Добавление студента в базу
+    // Добавление ученика в базу
+    // name - имя ученика
+    // level - класс/курс
     void addStudent(const QString &name, int level) {
-        QJsonObject student;
-        student["name"] = name;
-        student["level"] = level;
-        student["skippings"] = QJsonArray();
-        data.append(student);
+        data["spreadsheet"].push_back
+            (
+            {
+                {"name", name.toStdString()},
+                {"level", level},
+                {"skippsCount", 0},
+                {"skippings", nlohmann::json::array()}
+            }
+            );
     }
 
+    // Добавление пропуска ученика с пробросом исключения
+    // ID - ID ученика
+    // date - дата пропуска
+    // subject - предмет
     void addSkipping(int ID, const QDate &date, const QString &subject) {
-        if (ID >= data.size()) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(ID)));
+        if (ID >= data["spreadsheet"].size() or ID < 0) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(ID)));
 
-        QJsonObject skipping;
-        skipping["data"] = date.toString();
-        skipping["subject"] = subject;
-        (data[ID]).toObject()["skippings"].toArray().append(skipping);
+        data["spreadsheet"][ID]["skippings"].push_back
+            (
+            {
+                {"date", date.toString().toStdString()},
+                {"subject", subject.toStdString()}
+            }
+            );
+        data["spreadsheet"][ID]["skippsCount"] = data["spreadsheet"][ID]["skippsCount"].get<int>() + 1;
     }
 
+    // Удаление студента с пробросом исключения
+    // ID - ID студента
     void removeStudent(const int ID) {
-        if (ID >= data.size()) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(ID)));
-        data.removeAt(ID);
+        if (ID >= data["spreadsheet"].size() or ID < 0) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(ID)));
+
+        data["spreadsheet"].erase(data["spreadsheet"].begin()+ID);
     }
 
+    // Удаление пропуска ученика с пробросом исключения
+    // studentID - ID ученика
+    // skippingID - номер пропуска
     void removeSkipping(const int studentID, const int skippingID) {
-        if (studentID >= data.size()) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(studentID)));
-        if (skippingID >= data[studentID].toArray().size()) throw(std::runtime_error("Skippings does not contain skipping with ID " + std::to_string(skippingID)));
+        if (studentID >= data["spreadsheet"].size() or studentID < 0) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(studentID)));
+        if (skippingID >= data["spreadsheet"][studentID]["skippings"].size() or skippingID < 0) throw(std::runtime_error("Skippings does not contain skipping with ID " + std::to_string(skippingID)));
 
-        data[studentID].toObject()["skippings"].toArray().removeAt(skippingID);
+        data["spreadsheet"][studentID]["skippings"].erase(data["spreadsheet"][studentID]["skippings"].begin()+skippingID);
+        data["spreadsheet"][studentID]["skippsCount"] += -1;
     }
 
     // Только для дебага, удалить
     void show() {
-        qDebug() << "Base data";
-        QJsonObject obj;
-        obj["database"] = data;
-        QJsonDocument doc(obj);
-        qDebug().noquote() << doc.toJson(QJsonDocument::Indented);
+        qDebug() << "=============== Вывод БД ===============";
+        qDebug() << data.dump(2);
+    }
+
+    const nlohmann::json& getAllData() const {
+        return data;
     }
 };
 

@@ -1,12 +1,13 @@
 #include "databasemain.h"
-#include "./ui_databasemain.h"
+#include "ui_databasemain.h"
+#include "database.h"
 
 DatabaseMain::DatabaseMain(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::DatabaseMain)
 {
     ui->setupUi(this);
-    ui->tableView.
+
 }
 
 
@@ -17,5 +18,5 @@ DatabaseMain::~DatabaseMain()
 }
 
 void DatabaseMain::update(const QJsonObject &object) {
-    ui->tableView.
+    //ui->tableView.
 }
