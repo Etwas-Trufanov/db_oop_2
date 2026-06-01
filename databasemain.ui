@@ -238,6 +238,18 @@
               <property name="styleSheet">
                <string notr="true">border: 1px solid #DDDDDD;</string>
               </property>
+              <property name="wrapping">
+               <bool>false</bool>
+              </property>
+              <property name="accelerated">
+               <bool>false</bool>
+              </property>
+              <property name="showGroupSeparator" stdset="0">
+               <bool>false</bool>
+              </property>
+              <property name="calendarPopup">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -344,7 +356,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QTableView" name="tableView"/>
+       <widget class="QTableView" name="table"/>
       </item>
      </layout>
     </item>

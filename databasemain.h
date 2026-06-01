@@ -2,6 +2,9 @@
 #define DATABASEMAIN_H
 
 #include <QMainWindow>
+#include <QStandardItemModel>
+#include "json.hpp"
+#include "database.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -17,12 +20,20 @@ public:
     explicit DatabaseMain(QWidget *parent = nullptr);
 
     // Фунция обновления
-    void update(const QJsonObject &object);
+    void update(const nlohmann::json &a);
 
     ~DatabaseMain() override;
+private slots:
+    void on_add_item_button_clicked();
+
+    void on_add_item_button_2_clicked();
+
 private:
     Ui::DatabaseMain *ui;
 
+    TDataBase db;
+
+    QStandardItemModel *tableModel;
 
     const QString stdSavePath = R"(~/.local/share/OOP2-BD/db.json)";
 

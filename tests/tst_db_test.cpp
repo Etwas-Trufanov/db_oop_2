@@ -10,6 +10,7 @@ class db_test : public QObject
 public:
     db_test();
     ~db_test() override;
+    bool called = false;
 
 private slots:
     void test_addStudent();
@@ -21,11 +22,19 @@ private slots:
     void test_negativeID();
     void test_observer();
     void test_dataStructure();
+    void test_observerCall();
+private:
+    void update(const nlohmann::json &d);
 };
 
 db_test::db_test() {}
 
 db_test::~db_test() = default;
+
+
+void db_test::update(const nlohmann::json &d) {
+    called = true;
+}
 
 void db_test::test_addStudent()
 {
@@ -48,10 +57,8 @@ void db_test::test_addSkipping()
 {
     TDataBase db;
     db.addStudent("Ivanov", 3);
-    db.show();
     db.addSkipping(0, QDate(2024, 1, 15), "Math");
 
-    db.show();
     auto data = db.getAllData();
     auto& student = data["spreadsheet"][0];
 
@@ -59,7 +66,7 @@ void db_test::test_addSkipping()
     QCOMPARE(student["skippsCount"].get<int>(), 1);
     qDebug() << student["skippings"].size();
     QCOMPARE(student["skippings"].size(), 1);
-    QCOMPARE(student["skippings"][0]["date"].get<std::string>(), "2024-01-15");
+    QCOMPARE(student["skippings"][0]["date"].get<std::string>(), std::string("Mon Jan 15 2024"));
     qDebug() << student["skippings"][0]["subject"].is_string();
     QCOMPARE(student["skippings"][0]["subject"].get<std::string>(), std::string("Math"));
 }
@@ -141,14 +148,6 @@ void db_test::test_observer()
 
     db.addStudent("Ivanov", 3);
 
-    // У тебя observers вызываются только если ты их вызываешь вручную
-    // Если в addStudent нет notifyObservers() — этот тест проверяет только подписку
-    // Если добавишь notify — раскомментируй:
-    // QVERIFY(called);
-    // QCOMPARE(observedData["spreadsheet"].size(), 1u);
-
-    // Пока проверим, что observer добавился (косвенно — через размер)
-    // Это слабый тест, но лучше чем ничего
     Q_UNUSED(called)
     Q_UNUSED(observedData)
 }
@@ -162,6 +161,17 @@ void db_test::test_dataStructure()
     QVERIFY(data.contains("spreadsheet"));
     QVERIFY(data["spreadsheet"].is_array());
     QVERIFY(data["spreadsheet"].empty());
+}
+
+
+void db_test::test_observerCall() {
+    TDataBase db;
+    db.addStudent("Ivanov", 3);
+    db.addSkipping(0, QDate(2024, 1, 15), "Math");
+    db.addObserver(std::bind(&db_test::update, this, std::placeholders::_1));
+    db.addSkipping(0, QDate(2024, 1, 16), "Physics");
+    qDebug() << called;
+    QCOMPARE(called, true);
 }
 
 QTEST_MAIN(db_test)

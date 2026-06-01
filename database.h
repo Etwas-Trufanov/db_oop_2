@@ -9,6 +9,13 @@ class TDataBase {
 private:
     nlohmann::json data;
     std::vector<std::function<void(const nlohmann::json&)>> observers;
+
+
+    void callObservers() {
+        for (std::function<void(const nlohmann::json&)> &i : observers) {
+            i(data);
+        }
+    }
 public:
     // Простой инициализатор
     TDataBase() {
@@ -16,8 +23,8 @@ public:
         data["spreadsheet"] = nlohmann::json::array();
     };
 
-    // С загрузкой из файла
-    TDataBase(const QString &path) {};
+    // Загрузка БД из файла
+    void loadFromFile(const QString &path) {};
 
     // Сохранение файла
     void saveDateBase(const QString &path);
@@ -40,6 +47,7 @@ public:
                 {"skippings", nlohmann::json::array()}
             }
             );
+        callObservers();
     }
 
     // Добавление пропуска ученика с пробросом исключения
@@ -57,6 +65,7 @@ public:
             }
             );
         data["spreadsheet"][ID]["skippsCount"] = data["spreadsheet"][ID]["skippsCount"].get<int>() + 1;
+        callObservers();
     }
 
     // Удаление студента с пробросом исключения
@@ -65,6 +74,7 @@ public:
         if (ID >= data["spreadsheet"].size() or ID < 0) throw(std::runtime_error("Data does not contain student with ID " + std::to_string(ID)));
 
         data["spreadsheet"].erase(data["spreadsheet"].begin()+ID);
+        callObservers();
     }
 
     // Удаление пропуска ученика с пробросом исключения
@@ -75,13 +85,8 @@ public:
         if (skippingID >= data["spreadsheet"][studentID]["skippings"].size() or skippingID < 0) throw(std::runtime_error("Skippings does not contain skipping with ID " + std::to_string(skippingID)));
 
         data["spreadsheet"][studentID]["skippings"].erase(data["spreadsheet"][studentID]["skippings"].begin()+skippingID);
-        data["spreadsheet"][studentID]["skippsCount"] += -1;
-    }
-
-    // Только для дебага, удалить
-    void show() {
-        qDebug() << "=============== Вывод БД ===============";
-        qDebug() << data.dump(2);
+        data["spreadsheet"][studentID]["skippsCount"] = data["spreadsheet"][studentID]["skippsCount"].get<int>() - 1;
+        callObservers();
     }
 
     const nlohmann::json& getAllData() const {
