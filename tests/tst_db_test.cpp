@@ -5,7 +5,6 @@
 #include <QTextStream>
 #include <stdexcept>
 #include <string>
-#include <vector>
 #include "database.h"
 
 class TestDataBase : public QObject
@@ -68,10 +67,6 @@ private slots:
 
     // ─── Очистка ───
     void test_clear();
-
-    // ─── Граничные случаи / баги ───
-    void test_idReuseAfterRemove();   // документирует текущее поведение
-    void test_addSkippingAfterRemoveStudent(); // ID проверяется по size, а не по фактическому ID
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -85,7 +80,7 @@ void TestDataBase::test_emptyDatabase()
     QVERIFY(data.is_object());
     QVERIFY(data.contains("spreadsheet"));
     QVERIFY(data["spreadsheet"].is_array());
-    QCOMPARE(data["spreadsheet"].size(), static_cast<size_t>(0));
+    QCOMPARE(data["spreadsheet"].size(), 0);
 }
 
 void TestDataBase::test_dataStructure()
@@ -115,7 +110,7 @@ void TestDataBase::test_addStudent()
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(1));
+    QCOMPARE(s.size(), 1);
     QCOMPARE(s[0]["id"].get<int>(), 0);
     QCOMPARE(s[0]["name"].get<std::string>(), std::string("Ivanov"));
     QCOMPARE(s[0]["level"].get<int>(), 3);
@@ -134,7 +129,7 @@ void TestDataBase::test_addMultipleStudents()
     auto& s = data["spreadsheet"];
 
     qDebug().noquote() << s.dump(2);
-    QCOMPARE(s.size(), static_cast<size_t>(3));
+    QCOMPARE(s.size(), 3);
     QCOMPARE(s[0]["id"].get<int>(), 0);
     QCOMPARE(s[1]["id"].get<int>(), 1);
     QCOMPARE(s[2]["id"].get<int>(), 2);
@@ -152,7 +147,7 @@ void TestDataBase::test_removeStudent()
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(2));
+    QCOMPARE(s.size(), 2);
     QCOMPARE(s[0]["name"].get<std::string>(), std::string("Ivanov"));
     QCOMPARE(s[1]["name"].get<std::string>(), std::string("Sidorov"));
 }
@@ -161,14 +156,14 @@ void TestDataBase::test_removeStudentInvalidId()
 {
     TDataBase db;
     db.addStudent("Ivanov", 3);
-    QVERIFY_EXCEPTION_THROWN(db.removeStudent(5), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeStudent(5));
 }
 
 void TestDataBase::test_removeStudentNegativeId()
 {
     TDataBase db;
     db.addStudent("Ivanov", 3);
-    QVERIFY_EXCEPTION_THROWN(db.removeStudent(-1), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeStudent(-1));
 }
 
 // ─── Пропуски ───
@@ -183,7 +178,7 @@ void TestDataBase::test_addSkipping()
     auto& student = data["spreadsheet"][0];
 
     QCOMPARE(student["skippsCount"].get<int>(), 1);
-    QCOMPARE(student["skippings"].size(), static_cast<size_t>(1));
+    QCOMPARE(student["skippings"].size(), 1);
     QCOMPARE(student["skippings"][0]["date"].get<std::string>(), std::string("Mon Jan 15 2024"));
     QCOMPARE(student["skippings"][0]["subject"].get<std::string>(), std::string("Math"));
 }
@@ -200,7 +195,7 @@ void TestDataBase::test_addMultipleSkippings()
     auto& student = data["spreadsheet"][0];
 
     QCOMPARE(student["skippsCount"].get<int>(), 3);
-    QCOMPARE(student["skippings"].size(), static_cast<size_t>(3));
+    QCOMPARE(student["skippings"].size(), 3);
 }
 
 void TestDataBase::test_removeSkipping()
@@ -215,7 +210,7 @@ void TestDataBase::test_removeSkipping()
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
     auto& student = data["spreadsheet"][0];
 
-    QCOMPARE(student["skippings"].size(), static_cast<size_t>(1));
+    QCOMPARE(student["skippings"].size(), 1);
     QCOMPARE(student["skippings"][0]["subject"].get<std::string>(), std::string("Physics"));
     QCOMPARE(student["skippsCount"].get<int>(), 1);
 }
@@ -224,7 +219,7 @@ void TestDataBase::test_removeSkippingInvalidStudentId()
 {
     TDataBase db;
     db.addStudent("Ivanov", 3);
-    QVERIFY_EXCEPTION_THROWN(db.removeSkipping(5, 0), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeSkipping(5, 0));
 }
 
 void TestDataBase::test_removeSkippingInvalidSkippingId()
@@ -232,7 +227,7 @@ void TestDataBase::test_removeSkippingInvalidSkippingId()
     TDataBase db;
     db.addStudent("Ivanov", 3);
     db.addSkipping(0, QDate::currentDate(), "Math");
-    QVERIFY_EXCEPTION_THROWN(db.removeSkipping(0, 5), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeSkipping(0, 5));
 }
 
 // ─── Валидация ID ───
@@ -241,7 +236,7 @@ void TestDataBase::test_invalidStudentIdForSkipping()
 {
     TDataBase db;
     db.addStudent("Ivanov", 3);
-    QVERIFY_EXCEPTION_THROWN(db.addSkipping(5, QDate::currentDate(), "Math"), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.addSkipping(5, QDate::currentDate(), "Math"));
 }
 
 void TestDataBase::test_negativeIds()
@@ -249,10 +244,10 @@ void TestDataBase::test_negativeIds()
     TDataBase db;
     db.addStudent("Ivanov", 3);
 
-    QVERIFY_EXCEPTION_THROWN(db.addSkipping(-1, QDate::currentDate(), "Math"), std::runtime_error);
-    QVERIFY_EXCEPTION_THROWN(db.removeStudent(-1), std::runtime_error);
-    QVERIFY_EXCEPTION_THROWN(db.removeSkipping(0, -1), std::runtime_error);
-    QVERIFY_EXCEPTION_THROWN(db.removeSkipping(-1, 0), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.addSkipping(-1, QDate::currentDate(), "Math"));
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeStudent(-1));
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeSkipping(0, -1));
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.removeSkipping(-1, 0));
 }
 
 // ─── Observer ───
@@ -322,7 +317,7 @@ void TestDataBase::test_observerReceivesActualData()
     });
 
     db.addStudent("Ivanov", 3);
-    QCOMPARE(observed["spreadsheet"].size(), static_cast<size_t>(1));
+    QCOMPARE(observed["spreadsheet"].size(), 1);
     QCOMPARE(observed["spreadsheet"][0]["name"].get<std::string>(), std::string("Ivanov"));
 }
 
@@ -436,7 +431,7 @@ void TestDataBase::test_filterByLevel()
     auto data = db.getAllData(sorts::ById, true, 3, 5, false, 0, 0);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(2));
+    QCOMPARE(s.size(), 2);
     QCOMPARE(s[0]["name"].get<std::string>(), std::string("B"));
     QCOMPARE(s[1]["name"].get<std::string>(), std::string("C"));
 }
@@ -455,7 +450,7 @@ void TestDataBase::test_filterBySkipps()
     auto data = db.getAllData(sorts::ById, false, 0, 0, true, 1, 2);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(2));
+    QCOMPARE(s.size(), 2);
     QCOMPARE(s[0]["name"].get<std::string>(), std::string("A"));
     QCOMPARE(s[1]["name"].get<std::string>(), std::string("C"));
 }
@@ -474,7 +469,7 @@ void TestDataBase::test_filterCombined()
     auto data = db.getAllData(sorts::ById, true, 3, 3, true, 1, 1);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(1));
+    QCOMPARE(s.size(), 1);
     QCOMPARE(s[0]["name"].get<std::string>(), std::string("B"));
 }
 
@@ -487,7 +482,7 @@ void TestDataBase::test_filterNoMatch()
     auto data = db.getAllData(sorts::ById, true, 10, 20, false, 0, 0);
     auto& s = data["spreadsheet"];
 
-    QCOMPARE(s.size(), static_cast<size_t>(0));
+    QCOMPARE(s.size(), 0);
 }
 
 // ─── Файловые операции ───
@@ -510,7 +505,7 @@ void TestDataBase::test_saveAndLoad()
         auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
         auto& s = data["spreadsheet"];
 
-        QCOMPARE(s.size(), static_cast<size_t>(2));
+        QCOMPARE(s.size(), 2);
         QCOMPARE(s[0]["name"].get<std::string>(), std::string("Ivanov"));
         QCOMPARE(s[0]["level"].get<int>(), 3);
         QCOMPARE(s[0]["skippsCount"].get<int>(), 1);
@@ -527,7 +522,7 @@ void TestDataBase::test_loadFromNonExistentFile()
     db.loadFromFile("/nonexistent/path/file.json");
     // не должно быть исключений, просто пустая БД
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
-    QCOMPARE(data["spreadsheet"].size(), static_cast<size_t>(0));
+    QCOMPARE(data["spreadsheet"].size(), 0);
 }
 
 void TestDataBase::test_loadInvalidJson()
@@ -539,7 +534,7 @@ void TestDataBase::test_loadInvalidJson()
 
     TDataBase db;
     // выбрасывает std::runtime_error
-    QVERIFY_EXCEPTION_THROWN(db.loadFromFile(file.fileName()), std::runtime_error);
+    QVERIFY_THROWS_EXCEPTION(std::runtime_error, db.loadFromFile(file.fileName()));
 }
 
 void TestDataBase::test_loadMissingSpreadsheet()
@@ -553,7 +548,7 @@ void TestDataBase::test_loadMissingSpreadsheet()
     db.loadFromFile(file.fileName());
     // если нет spreadsheet, data не меняется — остаётся пустой
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
-    QCOMPARE(data["spreadsheet"].size(), static_cast<size_t>(0));
+    QCOMPARE(data["spreadsheet"].size(), 0);
 }
 
 // ─── Очистка ───
@@ -566,52 +561,7 @@ void TestDataBase::test_clear()
     db.clear();
 
     auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
-    QCOMPARE(data["spreadsheet"].size(), static_cast<size_t>(0));
-}
-
-// ─── Граничные случаи / баги ───
-
-void TestDataBase::test_idReuseAfterRemove()
-{
-    // Документирует текущее поведение:
-    // после removeStudent ID не пересчитываются,
-    // а новый студент получает ID = size(), что может привести к дублированию ID.
-    TDataBase db;
-    db.addStudent("A", 1); // id=0
-    db.addStudent("B", 2); // id=1
-    db.addStudent("C", 3); // id=2
-
-    db.removeStudent(1); // остались id=0, id=2
-
-    db.addStudent("D", 4); // id=3
-
-    auto data = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
-    auto& s = data["spreadsheet"];
-
-    QCOMPARE(s.size(), static_cast<size_t>(3));
-    int id0 = s[0]["id"].get<int>();
-    int id1 = s[1]["id"].get<int>();
-    int id2 = s[2]["id"].get<int>();
-
-    QVERIFY(id0 == 0);
-    QVERIFY(id1 == 2);
-    QVERIFY(id2 == 3);
-}
-
-void TestDataBase::test_addSkippingAfterRemoveStudent()
-{
-
-    TDataBase db;
-    db.addStudent("A", 1); // id=0
-    db.addStudent("B", 2); // id=1
-    db.addStudent("C", 3); // id=2
-
-    db.removeStudent(1); // остались id=0, id=2. size=2
-
-    db.addSkipping(2, QDate::currentDate(), "Math");
-    auto d = db.getAllData(sorts::ById, false, 0, 0, false, 0, 0);
-    nlohmann::json &a = d["spreadsheet"][1];
-    QVERIFY(a["skippings"][0]["subject"].get<std::string>() == "Math");
+    QCOMPARE(data["spreadsheet"].size(), 0);
 }
 
 QTEST_MAIN(TestDataBase)

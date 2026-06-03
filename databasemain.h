@@ -79,9 +79,6 @@ private:
     // Добавление ученика
     void addStudent(const QString &name, const unsigned level);
 
-    // Добавление пропуска ученики
-    void addSkipping(const QString &name, const QDateTime date, unsigned subject);
-
     // Удаление записи из под выделения
     // Автоматически понимает, что хочет пользователь удалить
     void delUnderSelection();

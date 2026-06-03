@@ -11,19 +11,23 @@ DatabaseMain::DatabaseMain(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::DatabaseMain)
 {
-
+    // Иницмализация UI
     ui->setupUi(this);
+    // Инициализация БД
     db = new TDataBase();
+    // Подключаем метод наблюдатель
     db->addObserver([this](){
         this->update();
     });
+    // Инициазируем модель таблицы
     tableModel = new QStandardItemModel(this);
     ui->table->setModel(tableModel);
+    // Устанавливаем в календарь текущую дату
     ui->dateEdit->setDate(QDate::currentDate());
     // Заголовки столбцов
     tableModel->setHorizontalHeaderLabels(stdTableLabels);
-    //ui->qDebugButton->hide();
 
+    // Подключаем всякое, что через формочки подкдючить нельзя
     connect(ui->newAction, &QAction::triggered, this, &DatabaseMain::newDB);
     connect(ui->loadAction, &QAction::triggered, this, &DatabaseMain::tryLoadDB);
     connect(ui->saveAction, &QAction::triggered, this, &DatabaseMain::trySaveDB);
@@ -59,6 +63,7 @@ void DatabaseMain::update() {
     // Очищаем старое
     tableModel->clear();
 
+    // Получаем значения фильтров
     int filterValueLevelFrom = INT_MIN; bool fLF = false;
     int filterValueLevelTo = INT_MAX; bool fLT = false;
 
@@ -72,14 +77,15 @@ void DatabaseMain::update() {
     filterValueSkippsFrom = ui->skippsFromEdit->text().toInt(&fSF);
     filterValueSkippsTo = ui->skippsToEdit->text().toInt(&fST);
 
-
-    nlohmann::json data = db->getAllData(currentSortMode,
+    // Получаем базу данных
+    const nlohmann::json &data = db->getAllData(currentSortMode,
                         fLF or fLT, fLF ? filterValueLevelFrom : INT_MIN, fLT ? filterValueLevelTo : INT_MAX,
                         fSF or fST, fSF ? filterValueSkippsFrom : INT_MIN, fST ? filterValueSkippsTo : INT_MAX);
 
     // Если в JSON нет нужного ключа — выходим
     if (!data.contains("spreadsheet")) return;
 
+    // Начинаем генерировать лейблы колонок
     auto tableLabels = stdTableLabels;
 
     // Считаем максимальное количество пропусков у одного ученика
@@ -133,9 +139,11 @@ void DatabaseMain::update() {
         tableModel->appendRow(rowItems);
     }
 
+    // Чтоб всё влезло
     ui->table->resizeColumnsToContents();
 }
 
+// Деструктор
 DatabaseMain::~DatabaseMain()
 {
     delete tableModel;
@@ -143,22 +151,25 @@ DatabaseMain::~DatabaseMain()
     delete ui;
 }
 
+// На нажатие кнопки добавление ученика
 void DatabaseMain::on_add_item_button_clicked()
 {
+    // Проверяем корректность класса
     unsigned level;
-    QRegularExpression lvlexp("([0-9]{1, 2})");
+    QRegularExpression lvlexp("(^[0-9]{1, 2}$)");
     if (lvlexp.match(ui->levelEdit->text()).hasMatch()) {
         level = ui->levelEdit->text().toInt();
-    } else return;
-
+    } else {  return; }
+    // Проверям корректность имени
     QString name;
     QRegularExpression nameexp("^((?i)[a-zа-я][^0-9]+[ ]?){2, 3}$");
     if (nameexp.match(ui->nameEdit->text()).hasMatch()) {
         name = ui->nameEdit->text();
-    } else return;
+    } else { return; }
     db->addStudent(name, level);
 }
 
+// Добавление пропуска ученику
 void DatabaseMain::on_add_item_button_2_clicked()
 {
     if (selectedStudent < 0) return;
@@ -175,9 +186,10 @@ void DatabaseMain::on_add_item_button_2_clicked()
     }
 }
 
-
+// Выделение записей в таблице
 void DatabaseMain::on_table_clicked(const QModelIndex &index)
 {
+    // Вычисление и получние ID ученика и позиции пропуска
     selectedStudent = tableModel->index(index.row(), 0).data().toInt();
     ui->idEdit->setText(QString::number(selectedStudent));
     selectedSkip = index.column()-4;
@@ -202,31 +214,33 @@ void DatabaseMain::on_table_clicked(const QModelIndex &index)
         targetIndex = ui->table->model()->index(index.row(), selectedSkip*2+5);
         ui->table->selectionModel()->select(targetIndex, QItemSelectionModel::Select);
     }
+    // Выводим в статусбар
     QString tmp = "Student ID: " + (selectedStudent < 0 ? "no" : QString::number(selectedStudent)) + "; Skipping: " + (selectedSkip < 0 ? "no" : QString::number(selectedSkip));
     ui->cordinatesLabel->setText(tmp);
 }
 
-
+// Удаление пропуска
 void DatabaseMain::on_removeSkippingButton_clicked()
 {
     delSkipping();
 }
 
-
+// Удаление ученика
 void DatabaseMain::on_removeStudentButton_clicked()
 {
     delStudent();
 }
 
-
+// На редактировние поля ввода ID ученика в добавлении пропуска
 void DatabaseMain::on_idEdit_textChanged(const QString &arg1)
 {
     bool ok;
     auto tmp = arg1.toInt(&ok);
-    ui->add_item_button_2->setEnabled((ok&&tmp>-1) ? true : false);
+    ui->add_item_button_2->setEnabled((ok and tmp>-1));
+    selectedStudent = tmp;
 }
 
-
+// Выбор режима сортировки
 void DatabaseMain::on_comboBox_currentIndexChanged(int index)
 {
     currentSortMode = sorts(index);
@@ -234,6 +248,7 @@ void DatabaseMain::on_comboBox_currentIndexChanged(int index)
     update();
 }
 
+// Создание новой бд
 void DatabaseMain::newDB() {
     QString fileName = QFileDialog::getSaveFileName(
         this,
@@ -343,7 +358,9 @@ void DatabaseMain::delStudent() {
     clearCords();
 }
 
+// Удаление пропуска
 void DatabaseMain::delSkipping() {
+    // Проверяем индексы
     if (selectedSkip > -1 and selectedStudent > -1) {
         try {
             db->removeSkipping(selectedStudent, selectedSkip);
@@ -355,6 +372,7 @@ void DatabaseMain::delSkipping() {
             });
         }
     }
+    // Очищаем координаты
     clearCords();
 }
 
@@ -368,35 +386,37 @@ void DatabaseMain::clearCords() {
     ui->add_item_button_2->setEnabled(false);
 }
 
+// Вскрывашке
 void DatabaseMain::on_hideFiltersButton_clicked()
 {
     ui->sortBarWidget->hide();
 }
 
+// Изменение параметра фильтрации
 void DatabaseMain::on_skippsFromEdit_textChanged(const QString &arg1)
 {
     update();
 }
 
-
+// Изменение параметра фильтрации
 void DatabaseMain::on_skippsToEdit_textChanged(const QString &arg1)
 {
     update();
 }
 
-
+// Изменение параметра фильтрации
 void DatabaseMain::on_levelFromEdit_textChanged(const QString &arg1)
 {
     update();
 }
 
-
+// Изменение параметра фильтрации
 void DatabaseMain::on_levelToEdit_textChanged(const QString &arg1)
 {
     update();
 }
 
-
+// Скрытие интерфейса
 void DatabaseMain::on_hideAddDockButton_clicked()
 {
     ui->addDockWidget->hide();
